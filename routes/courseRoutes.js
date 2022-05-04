@@ -7,7 +7,7 @@ router.post("/create",async(req,res)=>{
     const course = new courseSchema({
         name: req.body.name, overview: req.body.overview, duration: req.body.duration, category: req.body.category,
         instructor:req.body.instructor, img_thumbnai: req.body.img_thumbnai, no_of_enrollments: req.body.no_of_enrollments,
-        sub_category:req.body.sub_category
+        sub_category:req.body.sub_category,comments:req.body.comments,syllabus:req.body.syllabus
       })
       try {
         const newCourse = await course.save();
@@ -44,13 +44,31 @@ router.get("/getAllCourses",async(req,res)=>{
         res.send(err.message)
       }
 })
-router.get("/getByCategory",async(req,res)=>{
+router.get("/getByName",async(req,res)=>{
     try{
-        const filter=await courseSchema.find({name:req.body.category})
+        const filter=await courseSchema.find({name:req.query.name})
         res.send(filter)
     }catch(err){
         res.send(err.message)
     }
+})
+
+router.get("/filterByCategory",async(req,res)=>{
+  try{
+      const filter=await courseSchema.find({category:req.query.category})
+      res.send(filter)
+  }catch(err){
+      res.send(err.message)
+  }
+})
+
+router.get("/filterByCategorys",async(req,res)=>{
+  try{
+      const filter=await courseSchema.find({$and:[{category: req.query.category},{sub_category:req.query.sub_category}]})
+      res.send(filter)
+  }catch(err){
+      res.send(err.message)
+  }
 })
 
 async function getCourse(req, res, next) {

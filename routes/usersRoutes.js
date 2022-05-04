@@ -16,54 +16,88 @@ router.post("/register",register,async(req,res)=>{
     }
 })
 
+// router.post(
+//     '/login',
+//     async (req, res, next) => {
+//       passport.authenticate(
+//         'login',
+//         async (err, user, info) => {
+//           try {
+//             if (err || !user) {
+//               const error = new Error('UNF');
+//               console.log("after setting error");
+//               return next(error.message);
+//             }
+            
+  
+//             req.login(
+//               user,
+//               { session: false },
+//               async (error) => {
+//                 if (error) return next("UNF");
+  
+//                 const body = { role:user.role, emailId: user.emailId };
+//                 const token = jwt.sign({ user: body }, process.env.TOP_SECRET);
+  
+//                 return res.json({ token });
+//               }
+//             );
+//           } catch (error) {
+//             return next(error);
+//           }
+//         }
+//       )(req, res, next);
+//     }
+//   );
+
 router.post(
-    '/login',
-    async (req, res, next) => {
-      passport.authenticate(
-        'login',
-        async (err, user, info) => {
-          try {
-            if (err || !user) {
-              const error = new Error('An error occurred.');
-  
-              return next(err.message);
-            }
-  
-            req.login(
-              user,
-              { session: false },
-              async (error) => {
-                if (error) return next(error);
-  
-                const body = { role:user.role, emailId: user.emailId };
-                const token = jwt.sign({ user: body }, process.env.TOP_SECRET);
-  
-                return res.json({ token });
-              }
-            );
-          } catch (error) {
-            return next(error);
+  '/login',
+  async (req, res, next) => {
+    passport.authenticate(
+      'login',
+      async (err, user, info) => {
+        try {
+          if (err || !user) {
+            const error = new Error('An error occurred.');
+            return res.send("UNF");
           }
+          req.login(
+            user,
+            { session: false },
+            async (error) => {
+              if (error) return next(error);
+
+              const body = { role:user.role, emailId: user.emailId };
+              const token = jwt.sign({ user: body }, process.env.TOP_SECRET);
+
+              return res.json({ token });
+            }
+          );
+        } catch (error) {
+          return next(error);
         }
-      )(req, res, next);
-    }
-  );
+      }
+    )(req, res, next);
+  }
+);
+
+  // router.get("/hey",(req,res)=>{
+  //   console.log(req.query.name);
+  //   res.send(req.query.lastName)
+  // })
 
 router.patch("/update/userdetails",authenticateJwt,async(req,res)=>{
   
 })
 
 router.patch("/update/enrollmentdetails",authenticateJwt,async(req,res)=>{
- 
+  let coursesEnrolled
   try{
     const currentUser=await userSchema.findOne({emailId:req.user.emailId})
-    const coursesEnrolled=""
-    if(currentUser.coursesEnrolled===""){
-        coursesEnrolled=req.body.courses_Enrolled
-    }
-    else{
+    
+    
       coursesEnrolled=currentUser.courses_Enrolled+" "+req.body.courses_Enrolled;
-    }
+    
     
     await userSchema.updateOne({emailId:req.user.emailId},{$set:{courses_Enrolled:coursesEnrolled}});
     res.send("Course Enrolled")
@@ -81,6 +115,26 @@ router.get("/allusers",async(req,res)=>{
     res.send(err.message)
   }
 })
+
+router.get("/oneuser",getUser,async(req,res)=>{
+  res.send("true")
+})
+
+async function getUser(req, res, next) {
+  let user
+  try {
+    const email=req.query.emailId
+    user = await userSchema.findOne({emailId:email})
+    if (user == null) {
+      return res.send("false")
+    }
+  } catch (err) {
+    return res.send(err.message)
+  }
+
+  res.user = user
+  next()
+}
 
 async function register(req,res,next){
     const newUser= new userSchema(

@@ -34,8 +34,14 @@ const courseSchema = new mongoose.Schema({
     required: true
   },
   comments:{
-    type:String
+    type:String,
+    required: false,
+    default: ""
   },
+  syllabus:[{
+    type:String,
+    required: true
+  }]
   // isBestSeller:{
   //   type:Boolean,
   //   required:ture
