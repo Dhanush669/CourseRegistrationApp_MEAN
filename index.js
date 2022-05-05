@@ -2,8 +2,9 @@ const express=require("express");
 const app=express()
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "http://localhost:4200");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    next();
+    res.header("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS, PUT, PATCH, DELETE");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept,Authorization");
+     next();
   });
 
 const bodyParser=require("body-parser")
@@ -15,7 +16,7 @@ const mongo=require("./utils/database.js");
 const courseRoutes=require("./routes/courseRoutes.js")
 const userRoutes=require("./routes/usersRoutes.js")
 
-const db=mongo.connection;
+mongo.connection;
 app.use("/course",courseRoutes)
 app.use("/user",userRoutes)
 

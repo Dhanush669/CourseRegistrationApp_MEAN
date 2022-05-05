@@ -4,6 +4,7 @@ const userSchema=require("../models/user.js")
 const bcrypt = require("bcrypt");
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
+const refreshSchema=require('../models/refreshToken.js')
 require('dotenv').config()
 
 router.post("/register",register,async(req,res)=>{
@@ -15,40 +16,6 @@ router.post("/register",register,async(req,res)=>{
         res.send(err.message)
     }
 })
-
-// router.post(
-//     '/login',
-//     async (req, res, next) => {
-//       passport.authenticate(
-//         'login',
-//         async (err, user, info) => {
-//           try {
-//             if (err || !user) {
-//               const error = new Error('UNF');
-//               console.log("after setting error");
-//               return next(error.message);
-//             }
-            
-  
-//             req.login(
-//               user,
-//               { session: false },
-//               async (error) => {
-//                 if (error) return next("UNF");
-  
-//                 const body = { role:user.role, emailId: user.emailId };
-//                 const token = jwt.sign({ user: body }, process.env.TOP_SECRET);
-  
-//                 return res.json({ token });
-//               }
-//             );
-//           } catch (error) {
-//             return next(error);
-//           }
-//         }
-//       )(req, res, next);
-//     }
-//   );
 
 router.post(
   '/login',
@@ -68,9 +35,13 @@ router.post(
               if (error) return next(error);
 
               const body = { role:user.role, emailId: user.emailId };
-              const token = jwt.sign({ user: body }, process.env.TOP_SECRET);
-
-              return res.json({ token });
+              // let token = "Bearer "+jwt.sign({ user: body }, process.env.TOP_SECRET,{ expiresIn: '5m' })+" ";
+              let token = "Bearer "+generateAccessToken(body)+" ";
+              let refreshToken=jwt.sign({ user: body }, process.env.REFRESH_SECRET,{ expiresIn: '60d' });
+              const ref_token=new refreshSchema({refreshToken:refreshToken})
+              await ref_token.save()
+              token+=refreshToken;
+              return res.send(token);
             }
           );
         } catch (error) {
@@ -81,10 +52,22 @@ router.post(
   }
 );
 
+router.get("/getToken",(req,res)=>{
+  let refreshToken=req.query.refreshToken;
+  jwt.verify(refreshToken,process.env.REFRESH_SECRET,(err,user)=>{
+    let token="Bearer "+generateAccessToken(user.user)+" "+refreshToken
+    return res.send(token)
+  })
+})
+
   // router.get("/hey",(req,res)=>{
   //   console.log(req.query.name);
   //   res.send(req.query.lastName)
   // })
+
+  function generateAccessToken(body){
+    return jwt.sign({ user: body }, process.env.TOP_SECRET,{ expiresIn: '30m' })
+  }
 
 router.patch("/update/userdetails",authenticateJwt,async(req,res)=>{
   
@@ -95,7 +78,7 @@ router.patch("/update/enrollmentdetails",authenticateJwt,async(req,res)=>{
   try{
     const currentUser=await userSchema.findOne({emailId:req.user.emailId})
     
-    
+    console.log(req.user.emailId);
       coursesEnrolled=currentUser.courses_Enrolled+" "+req.body.courses_Enrolled;
     
     
