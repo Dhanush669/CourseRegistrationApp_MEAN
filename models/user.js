@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const bcrypt = require("bcrypt");
+const course = require('./course');
 
 const userSchema=new mongoose.Schema({
     firstName:{
@@ -26,9 +27,7 @@ const userSchema=new mongoose.Schema({
     role:{
         type:String
        },
-    courses_Enrolled:{
-        type:String,
-    }
+    courses_Enrolled:[]
     
 
 })

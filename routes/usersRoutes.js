@@ -41,7 +41,7 @@ router.post(
               const ref_token=new refreshSchema({refreshToken:refreshToken})
               await ref_token.save()
               token+=refreshToken;
-              return res.send(token);
+              return res.send({"token":token,"role":user.role});
             }
           );
         } catch (error) {
@@ -52,12 +52,29 @@ router.post(
   }
 );
 
-router.get("/getToken",(req,res)=>{
-  let refreshToken=req.query.refreshToken;
-  jwt.verify(refreshToken,process.env.REFRESH_SECRET,(err,user)=>{
-    let token="Bearer "+generateAccessToken(user.user)+" "+refreshToken
-    return res.send(token)
+router.get("/getToken",async(req,res)=>{
+  let ref_Token=req.query.refreshToken;
+  if (ref_Token == null) return res.send("Empty Token")
+  let db_ref_Token= await refreshSchema.findOne({refreshToken:ref_Token})
+  
+  if (db_ref_Token.refreshToken!==ref_Token) return res.send("Please Login")
+  jwt.verify(ref_Token,process.env.REFRESH_SECRET,(err,user)=>{
+    if(err){
+      return res.send(err.message)
+    }
+    if(user==null){
+      return res.send("JWT Expired")
+    }
+    
+    let token="Bearer "+generateAccessToken(user.user)+" "+ref_Token
+    return res.send({"token":token,"role":user.user.role})
   })
+})
+
+router.delete("/removeToken",async (req,res)=>{
+  let ref_Token=req.query.refreshToken
+  await refreshSchema.deleteOne({refreshToken:ref_Token})
+  res.send("Deleted")
 })
 
   // router.get("/hey",(req,res)=>{
@@ -77,12 +94,9 @@ router.patch("/update/enrollmentdetails",authenticateJwt,async(req,res)=>{
   let coursesEnrolled
   try{
     const currentUser=await userSchema.findOne({emailId:req.user.emailId})
-    
-    console.log(req.user.emailId);
-      coursesEnrolled=currentUser.courses_Enrolled+" "+req.body.courses_Enrolled;
-    
-    
-    await userSchema.updateOne({emailId:req.user.emailId},{$set:{courses_Enrolled:coursesEnrolled}});
+    let obj=req.body.courses_Enrolled.name+" "+req.body.courses_Enrolled.img_thumbnai
+    currentUser.courses_Enrolled.push(obj)
+    await userSchema.updateOne({emailId:req.user.emailId},{$set:{courses_Enrolled:currentUser.courses_Enrolled}});
     res.send("Course Enrolled")
   }catch(err){
     res.send(err.message)
@@ -122,7 +136,7 @@ async function getUser(req, res, next) {
 async function register(req,res,next){
     const newUser= new userSchema(
         {firstName:req.body.fname,lastName:req.body.lname,emailId:req.body.email,
-        password:req.body.password,phno:req.body.phno,role:"user",courses_Enrolled:""
+        password:req.body.password,phno:req.body.phno,role:"user",courses_Enrolled:[]
     })
     const hashed=await bcrypt.hash(newUser.password,10);
     newUser.password=hashed;
@@ -132,13 +146,13 @@ async function register(req,res,next){
 
 function authenticateJwt(req,res,next){
   const header=req.header('authorization')
-  const token=header;
+  const token=header && header.split(' ')[1];
   if(token==null){
     return res.send("please log in")
   }
   jwt.verify(token,process.env.TOP_SECRET,(err,payload)=>{
     if(err){
-      return res.send(err.message)
+      return res.send("IV_JWT")
     }
     req.user=payload.user
     next()
