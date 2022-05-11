@@ -24,10 +24,21 @@ router.post("/create",async(req,res)=>{
       }
 })
 
-router.patch("/update/enrollment",authenticateJwt,getCourse,async (req,res)=>{
-      res.course.no_of_enrollments= (res.course.no_of_enrollments+=1);
+router.patch("/update/enrollment",authenticateJwt,async (req,res)=>{
+  let course
+  try {
+      course = await courseSchema.findOne({name:req.body.name})
+    if (course == null) {
+      return res.send('Cannot find course')
+    }
+  } catch (err) {
+    console.log("inside error");
+    return res.send(err.message)
+  }
+
+      course.no_of_enrollments= (course.no_of_enrollments+=1);
       try {
-        const updatedEnrollment = await res.course.save();
+        const updatedEnrollment = await course.save();
         res.send("updated enrollment")
       } catch (err) {
         res.send(err.message)
@@ -78,6 +89,21 @@ router.get("/filterBySubCategory",authenticateJwt,async(req,res)=>{
   }
 })
 
+router.get("/getSelectedCourse",authenticateJwt,async(req,res)=>{
+  let course
+    try {
+        course = await courseSchema.findOne({name:req.query.name})
+      if (course == null) {
+        return res.send('Cannot find course')
+      }
+    } catch (err) {
+      console.log("inside error");
+      return res.send(err.message)
+    }
+  
+    res.send(course)
+})
+
 async function getCourse(req, res, next) {
     let course
     try {
@@ -103,6 +129,7 @@ async function getCourse(req, res, next) {
       if(err){
         return res.send("IV_JWT")
       }
+      
       req.user=payload.user
       next()
     })

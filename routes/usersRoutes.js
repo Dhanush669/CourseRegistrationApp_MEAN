@@ -17,6 +17,10 @@ router.post("/register",register,async(req,res)=>{
     }
 })
 
+router.get('/isValid',authenticateJwt,(req,res)=>{
+  res.send("true")
+})
+
 router.post(
   '/login',
   async (req, res, next) => {
@@ -72,7 +76,9 @@ router.get("/getToken",async(req,res)=>{
 })
 
 router.delete("/removeToken",async (req,res)=>{
+  
   let ref_Token=req.query.refreshToken
+  console.log("inside delete "+ref_Token+" 1111");
   await refreshSchema.deleteOne({refreshToken:ref_Token})
   res.send("Deleted")
 })
@@ -90,11 +96,27 @@ router.patch("/update/userdetails",authenticateJwt,async(req,res)=>{
   
 })
 
+router.get("/myEnrollments",authenticateJwt,async(req,res)=>{
+  let user
+  try{
+    user=await userSchema.findOne({emailId:req.user.emailId})
+    if(user==null){
+      return res.send("please login")
+    }
+  }catch(err){
+    return res.send(err.message)
+  }
+  return res.send(user)
+
+})
+
 router.patch("/update/enrollmentdetails",authenticateJwt,async(req,res)=>{
   let coursesEnrolled
   try{
     const currentUser=await userSchema.findOne({emailId:req.user.emailId})
-    let obj=req.body.courses_Enrolled.name+" "+req.body.courses_Enrolled.img_thumbnai
+    // let obj=req.body.courses_Enrolled.name+" "+req.body.courses_Enrolled.img_thumbnai
+    let obj=req.body.courses_Enrolled
+    //console.log(obj);
     currentUser.courses_Enrolled.push(obj)
     await userSchema.updateOne({emailId:req.user.emailId},{$set:{courses_Enrolled:currentUser.courses_Enrolled}});
     res.send("Course Enrolled")
