@@ -2,6 +2,37 @@ const mongoose = require('mongoose')
 const bcrypt = require("bcrypt");
 const course = require('./course');
 
+// const userSchema=new mongoose.Schema({
+//     firstName:{
+//         type:String,
+//         required:true,
+//     },
+//     lastName:{
+//         type:String,
+//         required:true,
+//     },
+//     emailId:{
+//         type:String,
+//         required:true,
+//         unique:true
+//     },
+//     password:{
+//         type:String,
+//         required:true,
+//     },
+//     phno:{
+//         type:String,
+//         required:true,
+//     },
+//     role:{
+//         type:String
+//        },
+//     courses_Enrolled:[]
+    
+
+// })
+
+
 const userSchema=new mongoose.Schema({
     firstName:{
         type:String,
@@ -26,10 +57,7 @@ const userSchema=new mongoose.Schema({
     },
     role:{
         type:String
-       },
-    courses_Enrolled:[]
-    
-
+       }
 })
 
 userSchema.methods.isValidPassword=async function(password) {

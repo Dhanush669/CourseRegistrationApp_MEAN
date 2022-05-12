@@ -1,9 +1,12 @@
 const express=require("express")
 const router=express.Router();
 const userSchema=require("../models/user.js")
+const enrollmentSchema=require("../models/enrollments.js")
+const courseSchema=require("../models/course.js")
 const bcrypt = require("bcrypt");
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose')
 const refreshSchema=require('../models/refreshToken.js')
 require('dotenv').config()
 
@@ -38,7 +41,7 @@ router.post(
             async (error) => {
               if (error) return next(error);
 
-              const body = { role:user.role, emailId: user.emailId };
+              const body = { role:user.role, emailId: user.emailId, _id:user._id };
               // let token = "Bearer "+jwt.sign({ user: body }, process.env.TOP_SECRET,{ expiresIn: '5m' })+" ";
               let token = "Bearer "+generateAccessToken(body)+" ";
               let refreshToken=jwt.sign({ user: body }, process.env.REFRESH_SECRET,{ expiresIn: '60d' });
@@ -60,7 +63,7 @@ router.get("/getToken",async(req,res)=>{
   let ref_Token=req.query.refreshToken;
   if (ref_Token == null) return res.send("Empty Token")
   let db_ref_Token= await refreshSchema.findOne({refreshToken:ref_Token})
-  
+  if (db_ref_Token==null) return res.send("Please Login")
   if (db_ref_Token.refreshToken!==ref_Token) return res.send("Please Login")
   jwt.verify(ref_Token,process.env.REFRESH_SECRET,(err,user)=>{
     if(err){
@@ -78,7 +81,7 @@ router.get("/getToken",async(req,res)=>{
 router.delete("/removeToken",async (req,res)=>{
   
   let ref_Token=req.query.refreshToken
-  console.log("inside delete "+ref_Token+" 1111");
+  //console.log("inside delete "+ref_Token+" 1111");
   await refreshSchema.deleteOne({refreshToken:ref_Token})
   res.send("Deleted")
 })
@@ -96,13 +99,47 @@ router.patch("/update/userdetails",authenticateJwt,async(req,res)=>{
   
 })
 
+// router.get("/myEnrollments",authenticateJwt,async(req,res)=>{
+//   let user
+//   try{
+//     user=await userSchema.findOne({emailId:req.user.emailId})
+//     if(user==null){
+//       return res.send("please login")
+//     }
+//   }catch(err){
+//     return res.send(err.message)
+//   }
+//   return res.send(user)
+
+// })
+
+// router.get("/myEnrollments",authenticateJwt,async(req,res)=>{
+//   let user
+//   try{
+//     user=await courseSchema.find({})
+//     if(user==null){
+//       return res.send("please login")
+//     }
+//   }catch(err){
+//     return res.send(err.message)
+//   }
+//   return res.send(user)
+
+// })
+
 router.get("/myEnrollments",authenticateJwt,async(req,res)=>{
-  let user
+  let user=[]
   try{
-    user=await userSchema.findOne({emailId:req.user.emailId})
-    if(user==null){
-      return res.send("please login")
+    const currentUserId=await enrollmentSchema.findOne({uid:req.user._id})
+    if(currentUserId===null){
+      return res.send("no enrollments found")
     }
+    // console.log(req.user._id);
+    // console.log(currentUserId);
+    for(let i=0;i<currentUserId.en_courses.length;i++){
+      user.push(await courseSchema.findById(currentUserId.en_courses[i]))
+    }
+    // console.log(user.length);
   }catch(err){
     return res.send(err.message)
   }
@@ -110,20 +147,45 @@ router.get("/myEnrollments",authenticateJwt,async(req,res)=>{
 
 })
 
+// router.patch("/update/enrollmentdetails",authenticateJwt,async(req,res)=>{
+//   let coursesEnrolled
+//   try{
+//     const currentUser=await userSchema.findOne({emailId:req.user.emailId})
+//     // let obj=req.body.courses_Enrolled.name+" "+req.body.courses_Enrolled.img_thumbnai
+//     let obj=req.body.courses_Enrolled
+//     //console.log(obj);
+//     currentUser.courses_Enrolled.push(obj)
+//     await userSchema.updateOne({emailId:req.user.emailId},{$set:{courses_Enrolled:currentUser.courses_Enrolled}});
+//     res.send("Course Enrolled")
+//   }catch(err){
+//     res.send(err.message)
+//   }
+  
+// })
+
+
 router.patch("/update/enrollmentdetails",authenticateJwt,async(req,res)=>{
   let coursesEnrolled
   try{
-    const currentUser=await userSchema.findOne({emailId:req.user.emailId})
-    // let obj=req.body.courses_Enrolled.name+" "+req.body.courses_Enrolled.img_thumbnai
-    let obj=req.body.courses_Enrolled
-    //console.log(obj);
-    currentUser.courses_Enrolled.push(obj)
-    await userSchema.updateOne({emailId:req.user.emailId},{$set:{courses_Enrolled:currentUser.courses_Enrolled}});
-    res.send("Course Enrolled")
+    // console.log(req.user._id);
+    const currentUserId=await enrollmentSchema.findOne({uid:req.user._id})
+    const cur_course=await courseSchema.findOne({name:req.body.name})
+    let obj=req.body.name
+    console.log(currentUserId);
+    if(currentUserId===null){
+      let enrollment=new enrollmentSchema({
+        uid: req.user._id,
+        en_courses:[cur_course._id]
+      })
+      enrollment.save()
+      return res.send(enrollment)
+    }
+    currentUserId.en_courses.push(cur_course._id)
+    await currentUserId.save()
+    res.send("Course Enrolled Successfully")
   }catch(err){
     res.send(err.message)
   }
-  
 })
 
 router.get("/allusers",async(req,res)=>{
@@ -156,15 +218,36 @@ async function getUser(req, res, next) {
 }
 
 async function register(req,res,next){
+    // const newUser= new userSchema(
+    //     {firstName:req.body.fname,lastName:req.body.lname,emailId:req.body.email,
+    //     password:req.body.password,phno:req.body.phno,role:"user",courses_Enrolled:[]
+    // })
+
     const newUser= new userSchema(
-        {firstName:req.body.fname,lastName:req.body.lname,emailId:req.body.email,
-        password:req.body.password,phno:req.body.phno,role:"user",courses_Enrolled:[]
-    })
+      {firstName:req.body.fname,lastName:req.body.lname,emailId:req.body.email,
+      password:req.body.password,phno:req.body.phno,role:"user"
+  })
     const hashed=await bcrypt.hash(newUser.password,10);
     newUser.password=hashed;
     req.newUser=newUser;
     next()
 }
+
+// function authenticateJwt(req,res,next){
+//   const header=req.header('authorization')
+//   const token=header && header.split(' ')[1];
+//   if(token==null){
+//     return res.send("please log in")
+//   }
+//   jwt.verify(token,process.env.TOP_SECRET,(err,payload)=>{
+//     if(err){
+//       console.log("jwt error");
+//       return res.send("IV_JWT")
+//     }
+//     req.user=payload.user
+//     next()
+//   })
+// }
 
 function authenticateJwt(req,res,next){
   const header=req.header('authorization')
@@ -174,8 +257,11 @@ function authenticateJwt(req,res,next){
   }
   jwt.verify(token,process.env.TOP_SECRET,(err,payload)=>{
     if(err){
-      return res.send("IV_JWT")
+      console.log("jwt error");
+      
+      return res.status(401).send("IV_JWT")
     }
+    
     req.user=payload.user
     next()
   })
