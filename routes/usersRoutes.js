@@ -8,6 +8,7 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose')
 const refreshSchema=require('../models/refreshToken.js')
+const chatSchema=require('../models/chat.js')
 require('dotenv').config()
 
 router.post("/register",register,async(req,res)=>{
@@ -188,13 +189,32 @@ router.patch("/update/enrollmentdetails",authenticateJwt,async(req,res)=>{
   }
 })
 
-router.get("/allusers",async(req,res)=>{
+router.get("/allUsers",authenticateJwt,async(req,res)=>{
+  if(req.user.role!=="admin"){
+    return res.send("unauthorised user")
+  }
   try{
     const alluser=await userSchema.find()
     res.send(alluser)
   }catch(err){
     res.send(err.message)
   }
+})
+
+router.patch("/makeAdmin",authenticateJwt,async (req,res)=>{
+  if(req.user.role!=="admin"){
+    return res.send("unauthorised user")
+  }
+  try{
+    const curuser=await userSchema.findOne({emailId:req.body.emailId})
+    console.log(curuser);
+    curuser.role="admin"
+    curuser.save()
+  }
+  catch(err){
+    return res.send(err.message)
+  }
+  return res.send("Made as Admin")
 })
 
 router.get("/oneuser",getUser,async(req,res)=>{
@@ -216,6 +236,30 @@ async function getUser(req, res, next) {
   res.user = user
   next()
 }
+
+router.patch("/chat",async(req,res)=>{
+  try{
+    let rchatid=req.body.chatid
+    let rchats=req.body.chats
+    let newChat=await chatSchema.findOne({chatid:rchatid})
+    console.log(newChat);
+    if(newChat===null){
+      newChat=new chatSchema({
+        chatid:rchatid,
+        chat:[rchats]
+      })
+      newChat.save()
+      return res.send("delivered")
+    }
+    newChat.chat.push(rchats)
+    newChat.save()
+    return res.send("delivered")
+
+
+  }catch(err){
+    return res.send(err.message)
+  }
+})
 
 async function register(req,res,next){
     // const newUser= new userSchema(
