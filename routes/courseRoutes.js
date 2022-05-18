@@ -5,6 +5,7 @@ const categorySchema=require('../models/category.js')
 const sub_Category=require('../models/subcategory.js')
 const syllabusSchema = require('../models/syllabus.js')
 const commentsSchema = require('../models/comments.js')
+const enrollemnts = require('../models/enrollments.js')
 const jwt = require('jsonwebtoken');
 
 router.post("/create",authenticateJwt,async(req,res)=>{
@@ -245,6 +246,7 @@ router.get("/getComments",authenticateJwt,async(req,res)=>{
 // })
 
 router.patch("/update/enrollment",authenticateJwt,async (req,res)=>{
+  console.log("ima enrollemntssasdf");
   let course
   try {
       course = await courseSchema.findOne({name:req.body.name})
