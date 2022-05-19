@@ -73,7 +73,7 @@ router.get("/getToken",async(req,res)=>{
   let db_ref_Token= await refreshSchema.findOne({refreshToken:ref_Token})
   if (db_ref_Token==null) return res.send("Please Login")
   if (db_ref_Token.refreshToken!==ref_Token) return res.send("Please Login")
-  jwt.verify(ref_Token,process.env.REFRESH_SECRET,(err,user)=>{
+  jwt.verify(ref_Token,"NOTHING",(err,user)=>{
     if(err){
       return res.send(err.message)
     }
@@ -100,7 +100,7 @@ router.delete("/removeToken",async (req,res)=>{
   // })
 
   function generateAccessToken(body){
-    return jwt.sign({ user: body }, process.env.TOP_SECRET,{ expiresIn: '30m' })
+    return jwt.sign({ user: body }, "NOSECRET",{ expiresIn: '30m' })
   }
 
 router.patch("/update/userdetails",authenticateJwt,async(req,res)=>{
@@ -295,7 +295,7 @@ function authenticateJwt(req,res,next){
   if(token==null){
     return res.send("please log in")
   }
-  jwt.verify(token,process.env.TOP_SECRET,(err,payload)=>{
+  jwt.verify(token,"NOSECRET",(err,payload)=>{
     if(err){
       console.log("jwt error");
       

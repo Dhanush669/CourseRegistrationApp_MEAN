@@ -349,7 +349,7 @@ async function getCourse(req, res, next) {
     if(token==null){
       return res.send("please log in")
     }
-    jwt.verify(token,process.env.TOP_SECRET,(err,payload)=>{
+    jwt.verify(token,"NOSECRET",(err,payload)=>{
       if(err){
         console.log("jwt error");
         

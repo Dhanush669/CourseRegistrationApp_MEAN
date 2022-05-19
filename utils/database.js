@@ -1,5 +1,5 @@
 const mongo=require("mongoose")
 require('dotenv').config()
-mongo.connect(process.env.DATABASE_URL)
+mongo.connect("mongodb://localhost:27017/CourseRegistratonApp")
 
 module.exports=mongo
