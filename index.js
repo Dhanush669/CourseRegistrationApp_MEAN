@@ -31,3 +31,5 @@ app.use("/user",userRoutes)
 
 
 app.listen(9000)
+
+console.log("hey iam listening 9000");
