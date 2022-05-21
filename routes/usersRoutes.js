@@ -23,7 +23,7 @@ router.post("/register",register,async(req,res)=>{
     }
 })
 
-router.get("/auth/google", passport.authenticate('google', { scope: [ 'email', 'profile' ]}
+router.get("/auth/google", passport.authenticate('google', { scope: [ 'email', 'profile' ],prompt: 'select_account',response_type:"token&"}
 )
 
 )
@@ -52,7 +52,7 @@ router.post(
               const body = { role:user.role, emailId: user.emailId, _id:user._id };
               // let token = "Bearer "+jwt.sign({ user: body }, process.env.TOP_SECRET,{ expiresIn: '5m' })+" ";
               let token = "Bearer "+generateAccessToken(body)+" ";
-              let refreshToken=jwt.sign({ user: body }, process.env.REFRESH_SECRET,{ expiresIn: '60d' });
+              let refreshToken=jwt.sign({ user: body }, "NOSECRET",{ expiresIn: '60d' });
               const ref_token=new refreshSchema({refreshToken:refreshToken})
               await ref_token.save()
               token+=refreshToken;
@@ -216,12 +216,16 @@ router.get("/findHim",authenticateJwt,async(req,res)=>{
     let enroll=await enrollmentSchema.findOne({uid:user._id})
     console.log(enroll);
     let user_enroll=[]
-    for(let i=0;i<enroll.en_courses.length;i++){
-      let oneCourse=await courseSchema.findById(enroll.en_courses[i])
-      if(oneCourse!==null){
-      user_enroll.push(oneCourse)
+    if(enroll!==null){
+      for(let i=0;i<enroll.en_courses.length;i++){
+        let oneCourse=await courseSchema.findById(enroll.en_courses[i])
+        if(oneCourse!==null){
+        user_enroll.push(oneCourse)
+        }
       }
     }
+    
+    
     obj={
       "user":user,
       "enrollments":user_enroll
@@ -249,35 +253,7 @@ async function getUser(req, res, next) {
   next()
 }
 
-router.patch("/chat",async(req,res)=>{
-  try{
-    let rchatid=req.body.chatid
-    let rchats=req.body.chats
-    let newChat=await chatSchema.findOne({chatid:rchatid})
-    console.log(newChat);
-    if(newChat===null){
-      newChat=new chatSchema({
-        chatid:rchatid,
-        chat:[rchats]
-      })
-      newChat.save()
-      return res.send("delivered")
-    }
-    newChat.chat.push(rchats)
-    newChat.save()
-    return res.send("delivered")
-
-
-  }catch(err){
-    return res.send(err.message)
-  }
-})
-
 async function register(req,res,next){
-    // const newUser= new userSchema(
-    //     {firstName:req.body.fname,lastName:req.body.lname,emailId:req.body.email,
-    //     password:req.body.password,phno:req.body.phno,role:"user",courses_Enrolled:[]
-    // })
 
     const newUser= new userSchema(
       {firstName:req.body.fname,lastName:req.body.lname,emailId:req.body.email,
