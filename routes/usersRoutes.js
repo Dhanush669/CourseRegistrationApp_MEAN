@@ -12,6 +12,12 @@ const refreshSchema=require('../models/refreshToken.js')
 const chatSchema=require('../models/chat.js')
 require('dotenv').config()
 require('./auth.js')
+const accountSid = "AC0e0939ef52422227eea7d3b37e49cd16";
+const authToken = "4773fb72257751b29c49fc20249aa935";
+const serviceId="VA9a7e60b31ea23e4067cc04ca1b9bcae7";
+const otpService = require('twilio')(accountSid, authToken);
+const Razorpay=require('razorpay')
+const crypto = require('crypto')
 
 router.post("/register",register,async(req,res)=>{
     const newUser=req.newUser;
@@ -30,6 +36,65 @@ router.get("/auth/google", passport.authenticate('google', { scope: [ 'email', '
 
 router.get('/isValid',authenticateJwt,(req,res)=>{
   res.send("true")
+})
+
+router.get("/sendOTP",(req,res)=>{
+  console.log("send otp");
+  const phno="+91"+req.query.phno
+  otpService
+  .verify
+  .services(serviceId)
+  .verifications
+  .create({
+      to: phno,
+      channel: 'sms' 
+  })
+  .then(data => {
+      return res.send(
+           "OTP is sent!!"
+      )
+  }).catch((err)=>{
+    return res.send(err.message)
+  }) 
+})
+
+router.get("/verifyOtp",(req,res)=>{
+  otpService
+            .verify
+            .services(serviceId)
+            .verificationChecks
+            .create({
+                to: `+${req.query.phno}`,
+                code: req.query.otp
+            })
+            .then(data => {
+                if (data.status === "approved") {
+                    return res.send(
+                        "UIV"
+                    )
+                }
+            }).catch((err)=>{
+              return res.send(err.message)
+            })
+})
+
+router.patch("/resetPassword",async(req,res)=>{
+  let email=req.body.emailId
+  let pwd=req.body.password
+  console.log(pwd);
+  let curuser
+  try{
+    curuser=await userSchema.findOne({emailId:email})
+    //await userSchema.updateOne({emailId:user.email},{$set:{password:await bcrypt.hash(pwd,10)}})
+    console.log(curuser);
+    curuser.password=await bcrypt.hash(pwd,10)
+    console.log(await bcrypt.compare(pwd,curuser.password));
+    console.log(curuser.password);
+    curuser.save()
+  }catch(err){
+    return res.send(err.message)
+  }
+  return res.send("updated Successfully")
 })
 
 router.post(
@@ -66,6 +131,44 @@ router.post(
     )(req, res, next);
   }
 );
+
+router.post("/orders",async(req,res)=>{
+  const amount=req.body.price
+  var instance=new Razorpay({key_id:'rzp_test_SyMuhwrC3KC8jP',key_secret:'b71MsDc7lz9ZpoXLgzQ9zpO1'})
+  let order= await instance.orders.create({
+    amount:amount*100,
+    currency:"INR",
+    receipt:"receipt#1",
+  })
+  console.log(order);
+
+  res.send(order)
+
+})
+
+router.post("/verigyPayment",async(req,res)=>{
+  
+  const order_id=req.body.order_id
+  const payment_id=req.body.payment_id
+  const razorpay_signature =  req.body.signature;
+  console.log("im inside verifie "+order_id+" "+payment_id+" "+razorpay_signature);
+  
+    const key_secret = "b71MsDc7lz9ZpoXLgzQ9zpO1";     
+
+    let hmac = crypto.createHmac('sha256', key_secret); 
+  
+    hmac.update(order_id + "|" + payment_id);
+      
+    const generated_signature = hmac.digest('hex');
+      
+      
+    if(razorpay_signature===generated_signature){
+      console.log("verified");
+        return res.send("PV")
+    }
+    else
+    return res.send("PVF")
+})
 
 router.get("/getToken",async(req,res)=>{
   let ref_Token=req.query.refreshToken;
@@ -116,6 +219,8 @@ router.patch("/update/userdetails",authenticateJwt,async(req,res)=>{
     }
     res.send("successfully updated details")
 })
+
+
 
 
 router.get("/myEnrollments",authenticateJwt,async(req,res)=>{
@@ -235,6 +340,21 @@ router.get("/findHim",authenticateJwt,async(req,res)=>{
     return res.send(err.message)
   }
   return res.send(obj)
+})
+
+router.get("/getDetails",async(req,res)=>{
+  let user
+  try{
+    let emailid=req.query.email;
+    user=await userSchema.findOne({emailId:emailid})
+  }catch(err){
+    return res.send(err.message)
+ 
+  }
+  if(user===null){
+    return res.send(null)
+  }
+  return res.send(user)
 })
 
 async function getUser(req, res, next) {
