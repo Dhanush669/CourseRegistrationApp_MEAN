@@ -68,7 +68,7 @@ router.get("/verifyOtp",(req,res)=>{
             .services(process.env.serviceId)
             .verificationChecks
             .create({
-                to: `+${req.query.phno}`,
+                to: `+91${req.query.phno}`,
                 code: req.query.otp
             })
             .then(data => {
