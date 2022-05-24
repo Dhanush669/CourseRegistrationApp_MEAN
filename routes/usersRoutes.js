@@ -295,7 +295,7 @@ router.patch("/makeAdmin",authenticateJwt,async (req,res)=>{
   }
   try{
     // const curuser=await userSchema.findOne({emailId:req.body.emailId})
-    const curuser=await userSchema.findById(req.user._id)
+    const curuser=await userSchema.findOne({emailId:req.body.emailId})
     const newrole=req.body.role
     console.log(curuser);
     curuser.role=newrole
