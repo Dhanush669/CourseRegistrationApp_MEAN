@@ -10,7 +10,7 @@ const jwt = require('jsonwebtoken');
 
 router.post("/create",authenticateJwt,async(req,res)=>{
   
-  if(req.user.role!=="admin"){
+  if(req.user.role==="user"){
     return res.send("unauthorised access")
   }
 
@@ -88,7 +88,7 @@ router.patch("/addComment",authenticateJwt,async (req,res)=>{
 })
 
 router.patch("/updateCourse",authenticateJwt,async(req,res)=>{
-  if(req.user.role!=="admin"){
+  if(req.user.role==="user"){
     return res.send("unauthorised user")
   }
   try{
@@ -113,7 +113,7 @@ router.patch("/updateCourse",authenticateJwt,async(req,res)=>{
 })
 
 router.patch("/addCategory",authenticateJwt,async(req,res)=>{
-  if(req.user.role!=="admin"){
+  if(req.user.role==="user"){
     return res.send("unauthorised user")
   }
   try{
@@ -136,7 +136,7 @@ router.patch("/addCategory",authenticateJwt,async(req,res)=>{
 })
 
 router.patch("/addSubCategory",authenticateJwt,async(req,res)=>{
-  if(req.user.role!=="admin"){
+  if(req.user.role==="user"){
     return res.send("unauthorised user")
   }
   try{
@@ -192,7 +192,7 @@ router.get("/allSubCategory",authenticateJwt, async(req,res)=>{
 
 router.delete("/deleteCourse",authenticateJwt,async (req,res)=>{
   
-  if(req.user.role!=="admin"){
+  if(req.user.role==="user"){
     return res.send("UnAuthorised Access")
   }
   try{

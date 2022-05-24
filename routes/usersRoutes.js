@@ -12,12 +12,15 @@ const refreshSchema=require('../models/refreshToken.js')
 const chatSchema=require('../models/chat.js')
 require('dotenv').config()
 require('./auth.js')
-const accountSid = "AC0e0939ef52422227eea7d3b37e49cd16";
-const authToken = "4773fb72257751b29c49fc20249aa935";
-const serviceId="VA9a7e60b31ea23e4067cc04ca1b9bcae7";
-const otpService = require('twilio')(accountSid, authToken);
+
+twilio_SID=process.env.accountSid
+console.log(twilio_SID);
+twilio_Token=process.env.authToken 
+console.log(twilio_Token);
+const otpService = require('twilio')(twilio_SID,twilio_Token );
 const Razorpay=require('razorpay')
-const crypto = require('crypto')
+const crypto = require('crypto');
+const twilio = require("twilio");
 
 router.post("/register",register,async(req,res)=>{
     const newUser=req.newUser;
@@ -43,7 +46,7 @@ router.get("/sendOTP",(req,res)=>{
   const phno="+91"+req.query.phno
   otpService
   .verify
-  .services(serviceId)
+  .services(process.env.serviceId)
   .verifications
   .create({
       to: phno,
@@ -59,9 +62,10 @@ router.get("/sendOTP",(req,res)=>{
 })
 
 router.get("/verifyOtp",(req,res)=>{
+  console.log(req.query.otp);
   otpService
             .verify
-            .services(serviceId)
+            .services(process.env.serviceId)
             .verificationChecks
             .create({
                 to: `+${req.query.phno}`,
@@ -69,12 +73,15 @@ router.get("/verifyOtp",(req,res)=>{
             })
             .then(data => {
                 if (data.status === "approved") {
+                  console.log("done");
                     return res.send(
                         "UIV"
                     )
                 }
             }).catch((err)=>{
-              return res.send(err.message)
+              console.log("err");
+              console.log(err.message);
+              return res.status(401).send(err.message)
             })
 })
 
@@ -134,7 +141,7 @@ router.post(
 
 router.post("/orders",async(req,res)=>{
   const amount=req.body.price
-  var instance=new Razorpay({key_id:'rzp_test_SyMuhwrC3KC8jP',key_secret:'b71MsDc7lz9ZpoXLgzQ9zpO1'})
+  var instance=new Razorpay({key_id:process.env.rzp_ID,key_secret:process.env.rzp_Secret})
   let order= await instance.orders.create({
     amount:amount*100,
     currency:"INR",
@@ -153,7 +160,7 @@ router.post("/verigyPayment",async(req,res)=>{
   const razorpay_signature =  req.body.signature;
   console.log("im inside verifie "+order_id+" "+payment_id+" "+razorpay_signature);
   
-    const key_secret = "b71MsDc7lz9ZpoXLgzQ9zpO1";     
+    const key_secret = process.env.rzp_Secret;     
 
     let hmac = crypto.createHmac('sha256', key_secret); 
   
@@ -176,7 +183,7 @@ router.get("/getToken",async(req,res)=>{
   let db_ref_Token= await refreshSchema.findOne({refreshToken:ref_Token})
   if (db_ref_Token==null) return res.send("Please Login")
   if (db_ref_Token.refreshToken!==ref_Token) return res.send("Please Login")
-  jwt.verify(ref_Token,"NOTHING",(err,user)=>{
+  jwt.verify(ref_Token,process.env.REFRESH_SECRET,(err,user)=>{
     if(err){
       return res.send(err.message)
     }
@@ -203,7 +210,7 @@ router.delete("/removeToken",async (req,res)=>{
   // })
 
   function generateAccessToken(body){
-    return jwt.sign({ user: body }, "NOSECRET",{ expiresIn: '30m' })
+    return jwt.sign({ user: body },process.env.TOP_SECRET,{ expiresIn: '30m' })
   }
 
 router.patch("/update/userdetails",authenticateJwt,async(req,res)=>{
@@ -284,12 +291,14 @@ router.get("/allUsers",authenticateJwt,async(req,res)=>{
 
 router.patch("/makeAdmin",authenticateJwt,async (req,res)=>{
   if(req.user.role!=="admin"){
-    return res.send("unauthorised user")
+    return res.status(401).send("UAU")
   }
   try{
-    const curuser=await userSchema.findOne({emailId:req.body.emailId})
+    // const curuser=await userSchema.findOne({emailId:req.body.emailId})
+    const curuser=await userSchema.findById(req.user._id)
+    const newrole=req.body.role
     console.log(curuser);
-    curuser.role="admin"
+    curuser.role=newrole
     curuser.save()
   }
   catch(err){
@@ -352,7 +361,7 @@ router.get("/getDetails",async(req,res)=>{
  
   }
   if(user===null){
-    return res.send(null)
+    return res.status(404).send("UNF")
   }
   return res.send(user)
 })

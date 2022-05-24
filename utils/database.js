@@ -1,10 +1,9 @@
 const mongo=require("mongoose")
 require('dotenv').config()
 //mongo.connect("mongodb://localhost:27017/CourseRegistratonApp")
-const db="mongodb+srv://root:Litpassword@cluster0.xxju2.mongodb.net/CourseRegistrationApp?retryWrites=true&w=majority"
-mongo.connect(db,{
+//const db="mongodb+srv://root:Litpassword@cluster0.xxju2.mongodb.net/CourseRegistrationApp?retryWrites=true&w=majority"
+mongo.connect(process.env.db,{
     useNewUrlParser:true,
-    
     useUnifiedTopology:true,
     
 }).then(()=>{

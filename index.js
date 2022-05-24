@@ -2,7 +2,7 @@ const express=require("express");
 const app=express()
 const session = require('express-session');
 app.use(function(req, res, next) {
-    res.header("Access-Control-Allow-Origin", "http://learnit.s3-website.ap-south-1.amazonaws.com");
+    res.header("Access-Control-Allow-Origin", "http://learnitv1.s3-website.ap-south-1.amazonaws.com");
     res.header("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS, PUT, PATCH, DELETE");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept,Authorization");
      next();
