@@ -124,7 +124,7 @@ router.post(
               const body = { role:user.role, emailId: user.emailId, _id:user._id };
               // let token = "Bearer "+jwt.sign({ user: body }, process.env.TOP_SECRET,{ expiresIn: '5m' })+" ";
               let token = "Bearer "+generateAccessToken(body)+" ";
-              let refreshToken=jwt.sign({ user: body }, "NOSECRET",{ expiresIn: '60d' });
+              let refreshToken=jwt.sign({ user: body }, process.env.REFRESH_SECRET,{ expiresIn: '60d' });
               const ref_token=new refreshSchema({refreshToken:refreshToken})
               await ref_token.save()
               token+=refreshToken;
@@ -179,12 +179,14 @@ router.post("/verigyPayment",async(req,res)=>{
 
 router.get("/getToken",async(req,res)=>{
   let ref_Token=req.query.refreshToken;
+  console.log(ref_Token);
   if (ref_Token == null) return res.send("Empty Token")
   let db_ref_Token= await refreshSchema.findOne({refreshToken:ref_Token})
-  if (db_ref_Token==null) return res.send("Please Login")
+  if (db_ref_Token===null) return res.send("Please Login")
   if (db_ref_Token.refreshToken!==ref_Token) return res.send("Please Login")
   jwt.verify(ref_Token,process.env.REFRESH_SECRET,(err,user)=>{
     if(err){
+      console.log(err);
       return res.send(err.message)
     }
     if(user==null){
@@ -199,7 +201,7 @@ router.get("/getToken",async(req,res)=>{
 router.delete("/removeToken",async (req,res)=>{
   
   let ref_Token=req.query.refreshToken
-  //console.log("inside delete "+ref_Token+" 1111");
+  // console.log("inside delete "+ref_Token+" 1111");
   await refreshSchema.deleteOne({refreshToken:ref_Token})
   res.send("Deleted")
 })
@@ -278,9 +280,9 @@ router.patch("/update/enrollmentdetails",authenticateJwt,async(req,res)=>{
 })
 
 router.get("/allUsers",authenticateJwt,async(req,res)=>{
-  if(req.user.role!=="admin"){
-    return res.send("unauthorised user")
-  }
+  // if(req.user.role!=="admin"){
+  //   return res.send("unauthorised user")
+  // }
   try{
     const alluser=await userSchema.find()
     res.send(alluser)
